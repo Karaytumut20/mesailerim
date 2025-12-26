@@ -1,8 +1,9 @@
 import React from 'react';
 import { View } from 'react-native';
-import { Card, TextInput, IconButton, Chip, useTheme } from 'react-native-paper';
+import { Card, Text, Chip, useTheme, IconButton } from 'react-native-paper';
 import { OvertimeItem } from '../types';
-import { parseNumber } from '../utils/formatters';
+import { StepperInput } from './ui/StepperInput';
+import { formatCurrency } from '../utils/formatters';
 
 interface Props {
   item: OvertimeItem;
@@ -11,7 +12,7 @@ interface Props {
   onDelete: (id: string) => void;
 }
 
-const PRESET_PERCENTAGES = [25, 50, 100, 200];
+const PRESET_PERCENTAGES = [50, 100];
 
 export const OvertimeCard: React.FC<Props> = ({ item, baseRate, onUpdate, onDelete }) => {
   const theme = useTheme();
@@ -20,58 +21,59 @@ export const OvertimeCard: React.FC<Props> = ({ item, baseRate, onUpdate, onDele
     ? item.manualRate
     : baseRate * (1 + item.percentage / 100);
 
+  const totalEarn = item.hours * calculatedRate;
+
   return (
-    <Card style={{ marginBottom: 12, backgroundColor: theme.colors.elevation.level1 }}>
+    <Card style={{ marginBottom: 12, backgroundColor: theme.colors.surface, borderRadius: 16 }} mode="elevated" elevation={1}>
       <Card.Content>
-        <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
-          <TextInput
-            mode="outlined"
-            label="Kategori Adı"
-            value={item.title}
-            onChangeText={(t) => onUpdate(item.id, 'title', t)}
-            style={{ flex: 1, height: 40, fontSize: 14 }}
-            dense
-          />
-          <IconButton icon="trash-can-outline" iconColor={theme.colors.error} onPress={() => onDelete(item.id)} />
+        {/* Header: Başlık ve Sil Butonu */}
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+          <View style={{flexDirection: 'row', alignItems: 'center', gap: 8}}>
+             <View style={{ width: 4, height: 24, backgroundColor: theme.colors.primary, borderRadius: 2 }} />
+             <Text variant="titleMedium" style={{ fontWeight: '600' }}>{item.title}</Text>
+          </View>
+          <IconButton icon="close" size={18} onPress={() => onDelete(item.id)} style={{ margin: 0 }} />
         </View>
 
-        <View style={{ flexDirection: 'row', gap: 6, marginBottom: 12 }}>
-          {PRESET_PERCENTAGES.map((pct) => (
-            <Chip
-              key={pct}
-              selected={!item.isOverride && item.percentage === pct}
-              onPress={() => onUpdate(item.id, 'percentage', pct)}
-              showSelectedOverlay
-              compact
-            >
-              %{pct}
-            </Chip>
-          ))}
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+
+          {/* Sol Taraf: Yüzde Seçimi */}
+          <View style={{ flex: 1 }}>
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 8 }}>
+              {PRESET_PERCENTAGES.map((pct) => (
+                <Chip
+                  key={pct}
+                  selected={!item.isOverride && item.percentage === pct}
+                  onPress={() => onUpdate(item.id, 'percentage', pct)}
+                  showSelectedOverlay
+                  style={{ backgroundColor: !item.isOverride && item.percentage === pct ? theme.colors.primaryContainer : undefined }}
+                  textStyle={{ fontSize: 11 }}
+                  compact
+                >
+                  %{pct}
+                </Chip>
+              ))}
+            </View>
+            <Text variant="bodySmall" style={{ color: theme.colors.secondary }}>
+              Birim: {formatCurrency(calculatedRate)} / saat
+            </Text>
+          </View>
+
+          {/* Sağ Taraf: Hızlı Saat Girişi */}
+          <StepperInput
+            value={item.hours}
+            onChange={(val) => onUpdate(item.id, 'hours', val)}
+          />
         </View>
 
-        <View style={{ flexDirection: 'row', gap: 10 }}>
-          <TextInput
-            mode="outlined"
-            label="Saat"
-            keyboardType="numeric"
-            value={item.hours === 0 ? '' : item.hours.toString()}
-            onChangeText={(t) => onUpdate(item.id, 'hours', parseNumber(t))}
-            style={{ flex: 1, backgroundColor: 'transparent' }}
-          />
-          <TextInput
-            mode="outlined"
-            label={item.isOverride ? "Özel" : "Tutar"}
-            keyboardType="numeric"
-            value={calculatedRate.toFixed(2)}
-            onChangeText={(t) => onUpdate(item.id, 'manualRate', parseNumber(t))}
-            style={{ flex: 1, backgroundColor: item.isOverride ? theme.colors.secondaryContainer : 'transparent' }}
-            right={
-              item.isOverride ? (
-                <TextInput.Icon icon="lock-reset" onPress={() => onUpdate(item.id, 'isOverride', false)} />
-              ) : ( <TextInput.Icon icon="calculator" /> )
-            }
-          />
+        {/* Footer: Toplam Tutar */}
+        <View style={{ marginTop: 12, paddingTop: 12, borderTopWidth: 1, borderTopColor: theme.colors.outline, flexDirection: 'row', justifyContent: 'space-between' }}>
+            <Text style={{ color: theme.colors.secondary }}>Bu Kalem Toplamı</Text>
+            <Text variant="titleMedium" style={{ color: theme.colors.primary, fontWeight: 'bold' }}>
+                {formatCurrency(totalEarn)}
+            </Text>
         </View>
+
       </Card.Content>
     </Card>
   );

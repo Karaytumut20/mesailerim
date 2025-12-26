@@ -2,7 +2,7 @@ export interface OvertimeItem {
   id: string;
   title: string;
   hours: number;
-  percentage: number;
+  percentage: number; // Örn: 50, 100
   manualRate?: number;
   isOverride: boolean;
 }
@@ -20,5 +20,12 @@ export interface HistoryRecord {
   date: string; // ISO string
   result: CalculationResult;
   hourlyRate: number;
+  overtimeItems: OvertimeItem[]; // Detayları saklamak için
   note?: string;
+}
+
+export interface AppSettings {
+  defaultHourlyRate: string;
+  defaultWorkHours: string;
+  currencySymbol: string;
 }

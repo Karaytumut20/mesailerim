@@ -1,35 +1,58 @@
 import { Tabs } from 'expo-router';
 import React from 'react';
-
-import { HapticTab } from '@/components/haptic-tab';
-import { IconSymbol } from '@/components/ui/icon-symbol';
-import { Colors } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { MaterialIcons } from '@expo/vector-icons';
+import { useTheme } from 'react-native-paper';
+import { Platform } from 'react-native';
 
 export default function TabLayout() {
-  const colorScheme = useColorScheme();
+  const theme = useTheme();
 
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
+        tabBarActiveTintColor: theme.colors.primary,
+        tabBarInactiveTintColor: theme.colors.secondary,
         headerShown: false,
-        tabBarButton: HapticTab,
+        tabBarStyle: {
+            backgroundColor: theme.colors.surface,
+            borderTopColor: theme.colors.outline,
+            height: Platform.OS === 'ios' ? 88 : 68,
+            paddingBottom: Platform.OS === 'ios' ? 28 : 12,
+            paddingTop: 12,
+            elevation: 8,
+            shadowColor: '#000',
+            shadowOpacity: 0.1,
+            shadowRadius: 4,
+            shadowOffset: { width: 0, height: -2 }
+        },
+        tabBarLabelStyle: {
+            fontSize: 12,
+            fontWeight: '600'
+        }
       }}>
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Home',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="house.fill" color={color} />,
+          title: 'Hesapla',
+          tabBarIcon: ({ color }) => <MaterialIcons size={26} name="calculate" color={color} />,
         }}
       />
       <Tabs.Screen
-        name="explore"
+        name="history"
         options={{
-          title: 'Explore',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="paperplane.fill" color={color} />,
+          title: 'Geçmiş',
+          tabBarIcon: ({ color }) => <MaterialIcons size={26} name="history" color={color} />,
         }}
       />
+      <Tabs.Screen
+        name="settings"
+        options={{
+          title: 'Ayarlar',
+          tabBarIcon: ({ color }) => <MaterialIcons size={26} name="settings" color={color} />,
+        }}
+      />
+      {/* Kullanılmayan rotaları gizle */}
+      <Tabs.Screen name="explore" options={{ href: null }} />
     </Tabs>
   );
 }

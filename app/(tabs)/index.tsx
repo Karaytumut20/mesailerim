@@ -1,107 +1,108 @@
-import { Image } from "expo-image";
-import { Platform, StyleSheet } from "react-native";
+import React, { useEffect } from 'react';
+import { ScrollView, View, Alert } from 'react-native';
+import { Text, Button, useTheme, Surface } from 'react-native-paper';
+import { useCalculator } from '@/hooks/useCalculator';
+import { OvertimeCard } from '@/components/OvertimeCard';
+import { formatCurrency, parseNumber } from '@/utils/formatters';
+import { useAppStore } from '@/store/appStore';
+import Animated, { FadeInDown, SlideInUp } from 'react-native-reanimated';
+import * as Haptics from 'expo-haptics';
+import { MaterialIcons } from '@expo/vector-icons';
 
-import { HelloWave } from "@/components/hello-wave";
-import ParallaxScrollView from "@/components/parallax-scroll-view";
-import { ThemedText } from "@/components/themed-text";
-import { ThemedView } from "@/components/themed-view";
-import { Link } from "expo-router";
+export default function DashboardScreen() {
+  const theme = useTheme();
+  const { addToHistory, settings } = useAppStore();
 
-export default function HomeScreen() {
+  const {
+    hourlyRate, setHourlyRate,
+    overtimeItems, addCategory, removeCategory, updateItem,
+    results
+  } = useCalculator();
+
+  // Ayarlardan varsayılan saatlik ücreti çek
+  useEffect(() => {
+    if (settings.defaultHourlyRate && (!hourlyRate || hourlyRate === '')) {
+        setHourlyRate(settings.defaultHourlyRate);
+    }
+  }, [settings.defaultHourlyRate]);
+
+  const handleSave = () => {
+    if (results.overtimeSalary <= 0) {
+        Alert.alert("Uyarı", "Hesaplanmış bir mesai tutarı bulunamadı.");
+        return;
+    }
+
+    if (process.env.EXPO_OS !== 'web') {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    }
+
+    addToHistory({
+      id: Date.now().toString(),
+      date: new Date().toISOString(),
+      hourlyRate: parseNumber(hourlyRate),
+      result: results,
+      overtimeItems: [...overtimeItems],
+      note: 'Hızlı Giriş'
+    });
+
+    Alert.alert("Başarılı", "Mesai kaydı başarıyla eklendi! 🎉");
+  };
+
   return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: "#A1CEDC", dark: "#1D3D47" }}
-      headerImage={
-        <Image
-          source={require("@/assets/images/partial-react-logo.png")}
-          style={styles.reactLogo}
-        />
-      }
-    >
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1ss: Try it</ThemedText>
-        <ThemedText>
-          Edit{" "}
-          <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText>{" "}
-          to see changes. Press{" "}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: "cmd + d",
-              android: "cmd + m",
-              web: "F12",
-            })}
-          </ThemedText>{" "}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <Link href="/modal">
-          <Link.Trigger>
-            <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-          </Link.Trigger>
-          <Link.Preview />
-          <Link.Menu>
-            <Link.MenuAction
-              title="Action"
-              icon="cube"
-              onPress={() => alert("Action pressed")}
-            />
-            <Link.MenuAction
-              title="Share"
-              icon="square.and.arrow.up"
-              onPress={() => alert("Share pressed")}
-            />
-            <Link.Menu title="More" icon="ellipsis">
-              <Link.MenuAction
-                title="Delete"
-                icon="trash"
-                destructive
-                onPress={() => alert("Delete pressed")}
-              />
-            </Link.Menu>
-          </Link.Menu>
-        </Link>
+    <View style={{ flex: 1, backgroundColor: theme.colors.background }}>
+        {/* Header - Büyük Kazanç Göstergesi */}
+        <Surface style={{
+            backgroundColor: theme.colors.primary,
+            paddingTop: 60,
+            paddingBottom: 30,
+            paddingHorizontal: 20,
+            borderBottomLeftRadius: 30,
+            borderBottomRightRadius: 30,
+            elevation: 4
+        }}>
+            <Animated.View entering={SlideInUp.delay(100)}>
+                <Text style={{ color: 'rgba(255,255,255,0.8)', fontSize: 14, fontWeight: '600' }}>
+                    HESAPLANAN MESAİ
+                </Text>
+                <Text style={{ color: '#fff', fontSize: 40, fontWeight: 'bold', marginVertical: 4 }}>
+                    {formatCurrency(results.overtimeSalary)}
+                </Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: 'rgba(0,0,0,0.1)', alignSelf: 'flex-start', padding: 4, paddingHorizontal: 8, borderRadius: 8 }}>
+                    <MaterialIcons name="attach-money" size={16} color="rgba(255,255,255,0.9)" />
+                    <Text style={{ color: 'rgba(255,255,255,0.9)', fontSize: 12, fontWeight: '600' }}>
+                        Saatlik: {formatCurrency(parseNumber(hourlyRate) || 0)}
+                    </Text>
+                </View>
+            </Animated.View>
+        </Surface>
 
-        <ThemedText>
-          {`Tap the Explore tab to learn more about what's included in this starter app.`}
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          {`When you're ready, run `}
-          <ThemedText type="defaultSemiBold">
-            npm run reset-project
-          </ThemedText>{" "}
-          to get a fresh <ThemedText type="defaultSemiBold">app</ThemedText>{" "}
-          directory. This will move the current{" "}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{" "}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
+        <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 100 }}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                <Text variant="titleMedium" style={{ fontWeight: 'bold', color: theme.colors.secondary }}>Mesai Kalemleri</Text>
+                <Button mode="text" onPress={addCategory} icon="plus" textColor={theme.colors.primary}>Ekle</Button>
+            </View>
+
+            {overtimeItems.map((item, index) => (
+                <Animated.View key={item.id} entering={FadeInDown.delay(index * 100).springify()}>
+                    <OvertimeCard
+                        item={item}
+                        baseRate={parseNumber(hourlyRate)}
+                        onUpdate={updateItem}
+                        onDelete={removeCategory}
+                    />
+                </Animated.View>
+            ))}
+
+            <Button
+                mode="contained"
+                onPress={handleSave}
+                style={{ marginTop: 20, borderRadius: 12, paddingVertical: 6 }}
+                icon="check-circle-outline"
+                buttonColor={theme.colors.primary}
+            >
+                KAYDET VE BİTİR
+            </Button>
+        </ScrollView>
+    </View>
   );
 }
-
-const styles = StyleSheet.create({
-  titleContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-  },
-  stepContainer: {
-    gap: 8,
-    marginBottom: 8,
-  },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: "absolute",
-  },
-});
