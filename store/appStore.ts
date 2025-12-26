@@ -1,22 +1,24 @@
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { HistoryRecord, AppSettings } from '../types';
+import { DailyLog, AppSettings } from '../types';
+import { v4 as uuidv4 } from 'uuid';
 
 interface AppState {
   isDarkMode: boolean;
   toggleTheme: () => void;
-  history: HistoryRecord[];
-  addToHistory: (record: HistoryRecord) => void;
-  removeFromHistory: (id: string) => void;
-  clearHistory: () => void;
+  logs: DailyLog[];
+  addLog: (log: Omit<DailyLog, 'id' | 'timestamp'>) => void;
+  removeLog: (id: string) => void;
   settings: AppSettings;
   updateSettings: (newSettings: Partial<AppSettings>) => void;
+  clearAllData: () => void;
 }
 
 const defaultSettings: AppSettings = {
-  defaultHourlyRate: '',
-  defaultWorkHours: '225',
+  targetMonthlySalary: '17002', // Referans Asgari Ücret
+  hourlyRate: '75.56',          // Hesaplama Ücreti (17002 / 225)
+  payDay: 1,
   currencySymbol: '₺',
 };
 
@@ -25,17 +27,26 @@ export const useAppStore = create<AppState>()(
     (set) => ({
       isDarkMode: false,
       toggleTheme: () => set((state) => ({ isDarkMode: !state.isDarkMode })),
-      history: [],
-      addToHistory: (record) => set((state) => ({ history: [record, ...state.history] })),
-      removeFromHistory: (id) => set((state) => ({ history: state.history.filter(h => h.id !== id) })),
-      clearHistory: () => set({ history: [] }),
+
+      logs: [],
+      addLog: (newLog) => set((state) => ({
+        logs: [
+          { ...newLog, id: uuidv4(), timestamp: Date.now() },
+          ...state.logs.filter(l => l.date !== newLog.date) // Aynı günü ez
+        ].sort((a, b) => b.timestamp - a.timestamp)
+      })),
+
+      removeLog: (id) => set((state) => ({ logs: state.logs.filter(l => l.id !== id) })),
+
       settings: defaultSettings,
       updateSettings: (newSettings) => set((state) => ({
         settings: { ...state.settings, ...newSettings }
       })),
+
+      clearAllData: () => set({ logs: [] })
     }),
     {
-      name: 'mesailerim-storage-v5', // Yapı değiştiği için versiyonu artırdık
+      name: 'mesailerim-pro-v8',
       storage: createJSONStorage(() => AsyncStorage),
     }
   )

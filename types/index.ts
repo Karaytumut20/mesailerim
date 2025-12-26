@@ -1,34 +1,27 @@
-export type ItemType = 'rate' | 'fixed'; // rate: Saatlik/Yüzdeli, fixed: Günlük/Sabit Tutar
+export type WorkType = 'normal' | 'off' | 'holiday';
 
-export interface OvertimeItem {
+export interface DailyLog {
   id: string;
-  type: ItemType;
-  title: string;
-  hours: number; // type='fixed' ise bu 'adet/gün' olur
-  percentage: number; // Sadece type='rate' için
-  manualRate?: number; // Sadece type='fixed' için birim fiyat
-  isOverride: boolean;
-}
-
-export interface CalculationResult {
-  baseSalary: number;
-  overtimeSalary: number;
-  grossTotal: number;
-  deductions: number;
-  netTotal: number;
-}
-
-export interface HistoryRecord {
-  id: string;
-  date: string;
-  result: CalculationResult;
-  hourlyRate: number;
-  overtimeItems: OvertimeItem[];
+  date: string; // YYYY-MM-DD
+  type: WorkType;
+  normalHours: number;
+  overtimeHours: number;
+  overtimeRate: number; // 25, 50, 100 vs
+  extras: number; // Nakit ekstralar (Yol/Yemek)
   note?: string;
+  timestamp: number;
+}
+
+export interface CycleInfo {
+  startDate: string;
+  endDate: string;
+  daysLeft: number;
+  progress: number;
 }
 
 export interface AppSettings {
-  defaultHourlyRate: string;
-  defaultWorkHours: string;
+  targetMonthlySalary: string; // Sadece GÖSTERİM (Referans) için
+  hourlyRate: string;          // Sadece HESAPLAMA için
+  payDay: number;
   currencySymbol: string;
 }

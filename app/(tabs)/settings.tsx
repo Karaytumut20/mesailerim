@@ -1,77 +1,111 @@
 import React, { useState } from 'react';
-import { View, ScrollView, Alert, Keyboard } from 'react-native';
-import { List, Switch, TextInput, useTheme, Divider, Text, Snackbar } from 'react-native-paper';
+import { ScrollView, View, Alert } from 'react-native';
+import { TextInput, Button, Text, Divider, Switch, useTheme, Surface, HelperText } from 'react-native-paper';
 import { useAppStore } from '@/store/appStore';
 
 export default function SettingsScreen() {
   const theme = useTheme();
-  const { isDarkMode, toggleTheme, settings, updateSettings, clearHistory } = useAppStore();
-  const [visible, setVisible] = useState(false);
-  const [localRate, setLocalRate] = useState(settings.defaultHourlyRate);
+  const { settings, updateSettings, isDarkMode, toggleTheme, clearAllData } = useAppStore();
 
-  const handleSaveRate = () => {
-    const num = parseFloat(localRate.replace(',', '.'));
-    if (isNaN(num) || num < 0) {
-        Alert.alert("Hata", "Geçersiz saatlik ücret.");
-        setLocalRate(settings.defaultHourlyRate);
-        return;
+  const [targetSalary, setTargetSalary] = useState(settings.targetMonthlySalary);
+  const [hourlyRate, setHourlyRate] = useState(settings.hourlyRate);
+  const [payDay, setPayDay] = useState(settings.payDay.toString());
+
+  // Sihirli Buton: Aylık maaştan saatliği hesapla
+  const calculateFromMonthly = () => {
+    const monthly = parseFloat(targetSalary.replace(',', '.')) || 0;
+    if (monthly > 0) {
+        // Türkiye standardı 225 saat
+        const calculated = (monthly / 225).toFixed(2);
+        setHourlyRate(calculated);
+        Alert.alert("Hesaplandı", `225 saate göre saatlik ücretiniz: ${calculated} TL olarak ayarlandı.`);
+    } else {
+        Alert.alert("Hata", "Lütfen önce geçerli bir aylık maaş girin.");
     }
-    updateSettings({ defaultHourlyRate: localRate });
-    Keyboard.dismiss();
-    setVisible(true);
   };
 
-  const handleClearHistory = () => {
-    Alert.alert("Geçmişi Sil", "Emin misiniz?", [{ text: "Vazgeç", style: "cancel" }, { text: "Sil", style: "destructive", onPress: clearHistory }]);
+  const handleSave = () => {
+    const pDay = parseInt(payDay);
+    if (pDay < 1 || pDay > 31) {
+        Alert.alert("Hata", "Maaş günü 1-31 arasında olmalıdır.");
+        return;
+    }
+    updateSettings({
+        targetMonthlySalary: targetSalary,
+        hourlyRate: hourlyRate,
+        payDay: pDay
+    });
+    Alert.alert("Başarılı", "Tüm parametreler kaydedildi.");
   };
 
   return (
-    <View style={{ flex: 1, backgroundColor: theme.colors.background }}>
-      <ScrollView>
-        <View style={{ padding: 20, paddingTop: 60 }}>
-          <Text variant="headlineMedium" style={{ fontWeight: 'bold', color: theme.colors.primary }}>Ayarlar</Text>
-        </View>
-        <List.Section>
-          <List.Subheader style={{ color: theme.colors.primary, fontWeight: '600' }}>HESAPLAMA</List.Subheader>
-          <View style={{ paddingHorizontal: 16, marginBottom: 16 }}>
-              <TextInput
+    <ScrollView style={{ flex: 1, backgroundColor: theme.colors.background }} contentContainerStyle={{ padding: 16 }}>
+      <Text variant="headlineMedium" style={{ fontWeight: 'bold', marginBottom: 20, marginTop: 40, color: theme.colors.primary }}>Finansal Ayarlar</Text>
+
+      <Surface style={{ padding: 16, borderRadius: 12, backgroundColor: theme.colors.surface }} elevation={1}>
+
+        {/* Referans Maaş */}
+        <Text variant="titleMedium" style={{ fontWeight: 'bold', marginBottom: 8, color: theme.colors.primary }}>1. Hedef / Referans</Text>
+        <TextInput
+          mode="outlined"
+          label="Aylık Normal Maaşınız (TL)"
+          value={targetSalary}
+          onChangeText={setTargetSalary}
+          keyboardType="numeric"
+          style={{ marginBottom: 4 }}
+        />
+        <HelperText type="info">Bu sadece ana sayfada "Normalde almanız gereken" tutarı göstermek içindir.</HelperText>
+
+        <Divider style={{ marginVertical: 16 }} />
+
+        {/* Hesaplama Parametresi */}
+        <Text variant="titleMedium" style={{ fontWeight: 'bold', marginBottom: 8, color: theme.colors.primary }}>2. Hesaplama Parametresi</Text>
+        <View style={{ flexDirection: 'row', gap: 10, alignItems: 'center' }}>
+            <TextInput
                 mode="outlined"
-                label="Varsayılan Saatlik Ücret (₺)"
+                label="Saatlik Ücret (TL)"
+                value={hourlyRate}
+                onChangeText={setHourlyRate}
                 keyboardType="numeric"
-                value={localRate}
-                onChangeText={setLocalRate}
-                onBlur={handleSaveRate}
-                style={{ backgroundColor: theme.colors.surface }}
-                textColor={theme.colors.onSurface}
-                right={<TextInput.Icon icon="check-circle" color={settings.defaultHourlyRate === localRate ? theme.colors.primary : theme.colors.outline} />}
-              />
-              <Text variant="bodySmall" style={{ color: theme.colors.secondary, marginTop: 6, marginLeft: 4 }}>Kaydetmek için klavyeyi kapatın.</Text>
-          </View>
-        </List.Section>
-        <Divider style={{ backgroundColor: theme.colors.outline }} />
-        <List.Section>
-          <List.Subheader style={{ color: theme.colors.primary, fontWeight: '600' }}>GÖRÜNÜM</List.Subheader>
-          <List.Item
-            title="Karanlık Mod"
-            titleStyle={{ color: theme.colors.onSurface }}
-            left={props => <List.Icon {...props} icon="theme-light-dark" color={theme.colors.onSurface} />}
-            right={() => <Switch value={isDarkMode} onValueChange={toggleTheme} color={theme.colors.primary} />}
-            style={{ backgroundColor: theme.colors.surface }}
-          />
-        </List.Section>
-        <Divider style={{ marginVertical: 10, backgroundColor: theme.colors.outline }} />
-        <List.Section>
-          <List.Subheader style={{ color: theme.colors.error, fontWeight: '600' }}>TEHLİKELİ BÖLGE</List.Subheader>
-          <List.Item
-            title="Tüm Geçmişi Temizle"
-            left={props => <List.Icon {...props} icon="delete-outline" color={theme.colors.error} />}
-            onPress={handleClearHistory}
-            titleStyle={{ color: theme.colors.error }}
-            style={{ backgroundColor: theme.colors.surface }}
-          />
-        </List.Section>
-      </ScrollView>
-      <Snackbar visible={visible} onDismiss={() => setVisible(false)} duration={2000}>Ayarlar kaydedildi.</Snackbar>
-    </View>
+                style={{ flex: 1 }}
+            />
+            <Button mode="contained-tonal" onPress={calculateFromMonthly} compact>
+                Maaştan Çevir
+            </Button>
+        </View>
+        <HelperText type="info">Tüm hakedişleriniz BU DEĞER (Saatlik Ücret) ile çarpılarak hesaplanır.</HelperText>
+
+        <Divider style={{ marginVertical: 16 }} />
+
+        {/* Döngü */}
+        <TextInput
+          mode="outlined"
+          label="Maaş Günü (Ayın kaçı?)"
+          value={payDay}
+          onChangeText={setPayDay}
+          keyboardType="numeric"
+          right={<TextInput.Affix text=". gün" />}
+        />
+
+        <Button mode="contained" onPress={handleSave} style={{ marginTop: 24 }} contentStyle={{ paddingVertical: 4 }}>
+          AYARLARI KAYDET
+        </Button>
+      </Surface>
+
+      <Surface style={{ padding: 16, borderRadius: 12, backgroundColor: theme.colors.surface, marginTop: 20 }} elevation={1}>
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+            <Text>Karanlık Mod</Text>
+            <Switch value={isDarkMode} onValueChange={toggleTheme} />
+        </View>
+        <Divider style={{ marginVertical: 12 }} />
+        <Button
+            mode="outlined"
+            textColor={theme.colors.error}
+            onPress={() => Alert.alert("Sıfırla", "Tüm veriler silinecek?", [{ text: "İptal" }, { text: "SİL", onPress: clearAllData }])}
+        >
+            Verileri Sıfırla
+        </Button>
+      </Surface>
+    </ScrollView>
   );
 }
