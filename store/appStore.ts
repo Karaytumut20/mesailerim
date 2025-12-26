@@ -10,16 +10,20 @@ interface AppState {
   logs: DailyLog[];
   addLog: (log: Omit<DailyLog, 'id' | 'timestamp'>) => void;
   removeLog: (id: string) => void;
+  editLog: (id: string, updatedLog: Partial<DailyLog>) => void; // <-- YENİ
   settings: AppSettings;
   updateSettings: (newSettings: Partial<AppSettings>) => void;
   clearAllData: () => void;
 }
 
 const defaultSettings: AppSettings = {
-  targetMonthlySalary: '17002', // Referans Asgari Ücret
-  hourlyRate: '75.56',          // Hesaplama Ücreti (17002 / 225)
+  targetMonthlySalary: '17002',
+  hourlyRate: '75.56',
   payDay: 1,
   currencySymbol: '₺',
+  workDaysPerWeek: '5',
+  workStart: '09:00',
+  workEnd: '18:00'
 };
 
 export const useAppStore = create<AppState>()(
@@ -29,14 +33,21 @@ export const useAppStore = create<AppState>()(
       toggleTheme: () => set((state) => ({ isDarkMode: !state.isDarkMode })),
 
       logs: [],
+
       addLog: (newLog) => set((state) => ({
         logs: [
           { ...newLog, id: uuidv4(), timestamp: Date.now() },
-          ...state.logs.filter(l => l.date !== newLog.date) // Aynı günü ez
+          ...state.logs.filter(l => l.date !== newLog.date)
         ].sort((a, b) => b.timestamp - a.timestamp)
       })),
 
       removeLog: (id) => set((state) => ({ logs: state.logs.filter(l => l.id !== id) })),
+
+      // YENİ: Var olan kaydı güncelle
+      editLog: (id, updatedLog) => set((state) => ({
+        logs: state.logs.map(log => log.id === id ? { ...log, ...updatedLog } : log)
+                  .sort((a, b) => b.timestamp - a.timestamp)
+      })),
 
       settings: defaultSettings,
       updateSettings: (newSettings) => set((state) => ({
@@ -46,7 +57,7 @@ export const useAppStore = create<AppState>()(
       clearAllData: () => set({ logs: [] })
     }),
     {
-      name: 'mesailerim-pro-v8',
+      name: 'mesailerim-pro-v13',
       storage: createJSONStorage(() => AsyncStorage),
     }
   )

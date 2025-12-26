@@ -2,12 +2,12 @@ export type WorkType = 'normal' | 'off' | 'holiday';
 
 export interface DailyLog {
   id: string;
-  date: string; // YYYY-MM-DD
+  date: string;
   type: WorkType;
   normalHours: number;
   overtimeHours: number;
-  overtimeRate: number; // 25, 50, 100 vs
-  extras: number; // Nakit ekstralar (Yol/Yemek)
+  overtimeRate: number;
+  extras: number;
   note?: string;
   timestamp: number;
 }
@@ -20,8 +20,12 @@ export interface CycleInfo {
 }
 
 export interface AppSettings {
-  targetMonthlySalary: string; // Sadece GÖSTERİM (Referans) için
-  hourlyRate: string;          // Sadece HESAPLAMA için
+  targetMonthlySalary: string;
+  hourlyRate: string;
   payDay: number;
   currencySymbol: string;
+  // YENİ ALANLAR
+  workDaysPerWeek: string; // "5", "6" vs.
+  workStart: string; // "09:00"
+  workEnd: string;   // "18:00"
 }

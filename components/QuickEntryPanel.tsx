@@ -1,124 +1,181 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
-import { Text, Surface, useTheme, TextInput, IconButton, SegmentedButtons, Chip } from 'react-native-paper';
+import { View, StyleSheet, TouchableOpacity, ScrollView, Dimensions, Keyboard } from 'react-native';
+import { Text, useTheme, TextInput, IconButton, Chip } from 'react-native-paper';
 import { useAppStore } from '@/store/appStore';
 import * as Haptics from 'expo-haptics';
+import { MaterialIcons } from '@expo/vector-icons';
+import Animated, { SlideInDown, FadeOut } from 'react-native-reanimated';
 
 const OVERTIME_RATES = [25, 50, 75, 100, 150, 200, 250, 300];
+const { height } = Dimensions.get('window');
 
 export const QuickEntryPanel = () => {
   const theme = useTheme();
   const { addLog } = useAppStore();
 
-  const [mode, setMode] = useState<'normal' | 'overtime'>('normal');
-  const [hours, setHours] = useState('');
-  const [selectedRate, setSelectedRate] = useState(50);
   const [expanded, setExpanded] = useState(false);
+  const [hours, setHours] = useState('');
+  const [isOvertime, setIsOvertime] = useState(false);
+  const [selectedRate, setSelectedRate] = useState(50);
 
   const handleAdd = () => {
-    if (!hours) return;
-    const h = parseFloat(hours);
+    const val = parseFloat(hours);
+    if (!val || val <= 0) return;
+
     const today = new Date().toISOString().split('T')[0];
 
-    let newLog = {
-      date: today,
-      type: 'normal' as const,
-      normalHours: 8,
-      overtimeHours: 0,
-      overtimeRate: 50,
-      extras: 0
-    };
+    // Mantık: Eğer 'Normal' seçiliyse normal saate ekle, 'Mesai' ise mesaiye.
+    // Hızlı giriş olduğu için o günün diğer verilerini (varsayılan 8 saat vb.) korumaya çalışıyoruz.
+    // Ancak basitlik için:
+    // Normal mod -> Normal: Girilen, Mesai: 0
+    // Mesai mod -> Normal: 8 (Standart), Mesai: Girilen
 
-    if (mode === 'normal') {
-        newLog.normalHours = h;
-    } else {
-        newLog.overtimeHours = h;
-        newLog.overtimeRate = selectedRate;
-        newLog.normalHours = 8; // Varsayılan normal saati koru
-    }
+    addLog({
+        date: today,
+        type: 'normal',
+        normalHours: !isOvertime ? val : 8,
+        overtimeHours: isOvertime ? val : 0,
+        overtimeRate: selectedRate,
+        extras: 0,
+        note: 'Hızlı Kayıt'
+    });
 
-    addLog(newLog);
     if (process.env.EXPO_OS !== 'web') Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+
+    // Kapat ve Temizle
+    Keyboard.dismiss();
     setHours('');
     setExpanded(false);
   };
 
+  // 1. KAPALI DURUM: Sadece Şık Bir "+" Butonu
   if (!expanded) {
     return (
-      <Surface style={[styles.collapsedContainer, { backgroundColor: theme.colors.elevation.level3, borderTopColor: theme.colors.outline }]} elevation={4}>
-        <TouchableOpacity style={styles.expandButton} onPress={() => setExpanded(true)}>
-            <Text variant="titleMedium" style={{ fontWeight: 'bold', color: theme.colors.primary }}>+ Hızlı Ekle</Text>
-            <Text variant="bodySmall" style={{ color: theme.colors.secondary }}>Bugünün verisini gir</Text>
+      <View style={styles.fabContainer}>
+        <TouchableOpacity
+            onPress={() => { setExpanded(true); Haptics.selectionAsync(); }}
+            style={[styles.fab, { backgroundColor: theme.colors.primary, shadowColor: theme.colors.primary }]}
+            activeOpacity={0.8}
+        >
+            <MaterialIcons name="add" size={32} color={theme.colors.onPrimary} />
         </TouchableOpacity>
-      </Surface>
+      </View>
     );
   }
 
+  // 2. AÇIK DURUM: Minimalist Bottom Sheet
   return (
-    <Surface style={[styles.container, { backgroundColor: theme.colors.elevation.level3, borderTopColor: theme.colors.primary }]} elevation={5}>
-      <View style={styles.header}>
-        <Text variant="titleMedium" style={{ fontWeight: 'bold' }}>Hızlı Giriş</Text>
-        <IconButton icon="close" size={20} onPress={() => setExpanded(false)} />
-      </View>
-
-      <SegmentedButtons
-        value={mode}
-        onValueChange={val => setMode(val as 'normal' | 'overtime')}
-        buttons={[
-          { value: 'normal', label: 'Normal', icon: 'briefcase' },
-          { value: 'overtime', label: 'Mesai', icon: 'clock-plus-outline' },
-        ]}
-        style={{ marginBottom: 12 }}
-      />
-
-      {/* Sadece Mesai Modunda Oran Seçici Göster */}
-      {mode === 'overtime' && (
-        <View style={{ marginBottom: 12 }}>
-            <Text variant="labelSmall" style={{ marginBottom: 4, color: theme.colors.secondary }}>Mesai Oranı:</Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                <View style={{ flexDirection: 'row', gap: 6 }}>
-                    {OVERTIME_RATES.map((rate) => (
-                        <Chip
-                            key={rate}
-                            selected={selectedRate === rate}
-                            onPress={() => setSelectedRate(rate)}
-                            showSelectedOverlay
-                            compact
-                            style={{ backgroundColor: selectedRate === rate ? theme.colors.primaryContainer : theme.colors.surface }}
-                        >
-                            %{rate}
-                        </Chip>
-                    ))}
-                </View>
-            </ScrollView>
-        </View>
-      )}
-
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-        <TextInput
-            mode="outlined"
-            value={hours}
-            onChangeText={setHours}
-            placeholder="Süre (Saat)"
-            keyboardType="numeric"
-            style={{ flex: 1, backgroundColor: theme.colors.surface }}
-            autoFocus
-            right={<TextInput.Affix text="sa" />}
-        />
+    <>
+        {/* Arkaplanı karart ve tıklayınca kapat */}
         <TouchableOpacity
-            onPress={handleAdd}
-            style={{ backgroundColor: theme.colors.primary, borderRadius: 10, padding: 10, height: 50, width: 50, justifyContent: 'center', alignItems: 'center' }}
+            style={styles.backdrop}
+            activeOpacity={1}
+            onPress={() => setExpanded(false)}
+        />
+
+        <Animated.View
+            entering={SlideInDown.springify().damping(18)}
+            exiting={FadeOut}
+            style={[styles.sheet, { backgroundColor: theme.colors.surface }]}
         >
-            <IconButton icon="check" iconColor={theme.colors.onPrimary} size={24} style={{ margin: 0 }} />
-        </TouchableOpacity>
-      </View>
-    </Surface>
+
+            {/* Header */}
+            <View style={styles.header}>
+                <Text variant="headlineSmall" style={{ fontWeight: 'bold', color: theme.colors.onSurface }}>Kayıt Ekle</Text>
+                <IconButton icon="close" size={24} onPress={() => setExpanded(false)} style={{ margin: -8 }} />
+            </View>
+
+            {/* Tip Seçici (Toggle) */}
+            <View style={{ flexDirection: 'row', marginBottom: 24, backgroundColor: theme.colors.surfaceVariant, borderRadius: 16, padding: 4 }}>
+                <TouchableOpacity
+                    onPress={() => setIsOvertime(false)}
+                    style={[styles.tab, !isOvertime && { backgroundColor: theme.colors.surface, shadowColor: "#000", shadowOpacity: 0.05, shadowRadius: 4, elevation: 2 }]}
+                >
+                    <Text style={{ fontWeight: !isOvertime ? 'bold' : 'normal', color: !isOvertime ? theme.colors.primary : theme.colors.secondary }}>Normal Çalışma</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                    onPress={() => setIsOvertime(true)}
+                    style={[styles.tab, isOvertime && { backgroundColor: theme.colors.surface, shadowColor: "#000", shadowOpacity: 0.05, shadowRadius: 4, elevation: 2 }]}
+                >
+                    <Text style={{ fontWeight: isOvertime ? 'bold' : 'normal', color: isOvertime ? '#F59E0B' : theme.colors.secondary }}>Fazla Mesai</Text>
+                </TouchableOpacity>
+            </View>
+
+            {/* Dev Input Alanı */}
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginBottom: 24 }}>
+                <TextInput
+                    value={hours}
+                    onChangeText={setHours}
+                    placeholder="0"
+                    keyboardType="numeric"
+                    autoFocus
+                    textColor={theme.colors.onSurface}
+                    style={{
+                        fontSize: 56,
+                        fontWeight: 'bold',
+                        textAlign: 'center',
+                        backgroundColor: 'transparent',
+                        minWidth: 100,
+                        height: 70
+                    }}
+                    underlineColor="transparent"
+                    activeUnderlineColor="transparent"
+                    selectionColor={theme.colors.primary}
+                />
+                <Text variant="headlineSmall" style={{ color: theme.colors.secondary, marginTop: 16, fontWeight: '500' }}>saat</Text>
+            </View>
+
+            {/* Sadece Mesai İse: Oran Seçici */}
+            {isOvertime && (
+                <View style={{ marginBottom: 24 }}>
+                    <Text variant="labelSmall" style={{ textAlign: 'center', color: theme.colors.secondary, marginBottom: 12, fontWeight: 'bold', letterSpacing: 1 }}>MESAİ ORANI</Text>
+                    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 4 }}>
+                        <View style={{ flexDirection: 'row', gap: 8 }}>
+                            {OVERTIME_RATES.map((rate) => (
+                                <Chip
+                                    key={rate}
+                                    selected={selectedRate === rate}
+                                    onPress={() => setSelectedRate(rate)}
+                                    showSelectedOverlay
+                                    style={{ backgroundColor: selectedRate === rate ? '#F59E0B' : theme.colors.surfaceVariant, height: 40, borderRadius: 20 }}
+                                    textStyle={{ color: selectedRate === rate ? '#FFF' : theme.colors.onSurfaceVariant, fontWeight: 'bold', fontSize: 14 }}
+                                >
+                                    %{rate}
+                                </Chip>
+                            ))}
+                        </View>
+                    </ScrollView>
+                </View>
+            )}
+
+            {/* Kaydet Butonu */}
+            <TouchableOpacity
+                onPress={handleAdd}
+                disabled={!hours}
+                style={[
+                    styles.saveBtn,
+                    {
+                        backgroundColor: hours ? (isOvertime ? '#F59E0B' : theme.colors.primary) : theme.colors.surfaceVariant,
+                        shadowColor: hours ? (isOvertime ? '#F59E0B' : theme.colors.primary) : 'transparent',
+                    }
+                ]}
+            >
+                <Text style={{ color: hours ? '#FFF' : theme.colors.secondary, fontWeight: 'bold', fontSize: 18 }}>
+                    KAYDET
+                </Text>
+            </TouchableOpacity>
+
+        </Animated.View>
+    </>
   );
 };
 
 const styles = StyleSheet.create({
-  collapsedContainer: { padding: 16, borderTopWidth: 1, borderTopLeftRadius: 16, borderTopRightRadius: 16 },
-  expandButton: { alignItems: 'center', paddingVertical: 8 },
-  container: { padding: 16, paddingBottom: 30, borderTopWidth: 2, borderTopLeftRadius: 24, borderTopRightRadius: 24 },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }
+  fabContainer: { position: 'absolute', bottom: 30, alignSelf: 'center', zIndex: 100 },
+  fab: { width: 64, height: 64, borderRadius: 32, justifyContent: 'center', alignItems: 'center', elevation: 8, shadowOffset: {width:0, height: 4}, shadowOpacity: 0.3, shadowRadius: 8 },
+  backdrop: { position: 'absolute', top: -height, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 90 },
+  sheet: { position: 'absolute', bottom: 0, left: 0, right: 0, padding: 24, paddingBottom: 40, borderTopLeftRadius: 32, borderTopRightRadius: 32, elevation: 20, zIndex: 100 },
+  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 },
+  tab: { flex: 1, paddingVertical: 12, alignItems: 'center', borderRadius: 14 },
+  saveBtn: { paddingVertical: 18, borderRadius: 20, alignItems: 'center', marginTop: 8, shadowOffset: {width:0, height:4}, shadowOpacity: 0.3, shadowRadius: 8, elevation: 4 }
 });
