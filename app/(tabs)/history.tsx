@@ -50,12 +50,11 @@ export default function HistoryScreen() {
                     />
                 </View>
 
-                {/* Detayları göster (Varsa) */}
                 {item.overtimeItems && item.overtimeItems.length > 0 && (
                     <View style={{ marginTop: 12, flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
                         {item.overtimeItems.map((detail, idx) => (
                             <View key={idx} style={{ backgroundColor: theme.colors.surfaceVariant, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6 }}>
-                                <Text variant="labelSmall" style={{color: theme.colors.onSurface}}>{detail.title}: <Text style={{fontWeight:'bold'}}>{detail.hours}s</Text></Text>
+                                <Text variant="labelSmall" style={{color: theme.colors.onSurface}}>{detail.title}: <Text style={{fontWeight:'bold'}}>{detail.hours}s</Text> (%{detail.percentage})</Text>
                             </View>
                         ))}
                     </View>
@@ -65,7 +64,7 @@ export default function HistoryScreen() {
         )}
         ListEmptyComponent={
             <View style={{ alignItems: 'center', marginTop: 100 }}>
-                <Text variant="bodyLarge" style={{ opacity: 0.5 }}>Henüz kayıt bulunmuyor.</Text>
+                <Text variant="bodyLarge" style={{ opacity: 0.5, color: theme.colors.secondary }}>Henüz kayıt bulunmuyor.</Text>
             </View>
         }
       />

@@ -35,7 +35,7 @@ export const useAppStore = create<AppState>()(
       })),
     }),
     {
-      name: 'mesailerim-storage-v3',
+      name: 'mesailerim-storage-v5', // Yapı değiştiği için versiyonu artırdık
       storage: createJSONStorage(() => AsyncStorage),
     }
   )

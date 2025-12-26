@@ -25,33 +25,11 @@ export default function TabLayout() {
             shadowRadius: 4,
             shadowOffset: { width: 0, height: -2 }
         },
-        tabBarLabelStyle: {
-            fontSize: 12,
-            fontWeight: '600'
-        }
+        tabBarLabelStyle: { fontSize: 12, fontWeight: '600' }
       }}>
-      <Tabs.Screen
-        name="index"
-        options={{
-          title: 'Hesapla',
-          tabBarIcon: ({ color }) => <MaterialIcons size={26} name="calculate" color={color} />,
-        }}
-      />
-      <Tabs.Screen
-        name="history"
-        options={{
-          title: 'Geçmiş',
-          tabBarIcon: ({ color }) => <MaterialIcons size={26} name="history" color={color} />,
-        }}
-      />
-      <Tabs.Screen
-        name="settings"
-        options={{
-          title: 'Ayarlar',
-          tabBarIcon: ({ color }) => <MaterialIcons size={26} name="settings" color={color} />,
-        }}
-      />
-      {/* Kullanılmayan rotaları gizle */}
+      <Tabs.Screen name="index" options={{ title: 'Hesapla', tabBarIcon: ({ color }) => <MaterialIcons size={26} name="calculate" color={color} /> }} />
+      <Tabs.Screen name="history" options={{ title: 'Geçmiş', tabBarIcon: ({ color }) => <MaterialIcons size={26} name="history" color={color} /> }} />
+      <Tabs.Screen name="settings" options={{ title: 'Ayarlar', tabBarIcon: ({ color }) => <MaterialIcons size={26} name="settings" color={color} /> }} />
       <Tabs.Screen name="explore" options={{ href: null }} />
     </Tabs>
   );

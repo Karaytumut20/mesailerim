@@ -8,7 +8,7 @@ export const formatCurrency = (amount: number) => {
 
 export const parseNumber = (text: string) => {
   if (!text) return 0;
-  const cleanText = text.replace(',', '.');
+  const cleanText = text.toString().replace(',', '.');
   const num = parseFloat(cleanText);
   return isNaN(num) ? 0 : num;
 };

@@ -1,9 +1,12 @@
+export type ItemType = 'rate' | 'fixed'; // rate: Saatlik/Yüzdeli, fixed: Günlük/Sabit Tutar
+
 export interface OvertimeItem {
   id: string;
+  type: ItemType;
   title: string;
-  hours: number;
-  percentage: number;
-  manualRate?: number;
+  hours: number; // type='fixed' ise bu 'adet/gün' olur
+  percentage: number; // Sadece type='rate' için
+  manualRate?: number; // Sadece type='fixed' için birim fiyat
   isOverride: boolean;
 }
 

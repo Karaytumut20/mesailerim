@@ -9,9 +9,10 @@ interface Props {
   onChange: (value: number) => void;
   label?: string;
   step?: number;
+  suffix?: string;
 }
 
-export const StepperInput: React.FC<Props> = ({ value, onChange, label, step = 1 }) => {
+export const StepperInput: React.FC<Props> = ({ value, onChange, label, step = 1, suffix }) => {
   const theme = useTheme();
   const handlePress = (direction: 'up' | 'down') => {
     if (process.env.EXPO_OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -21,14 +22,15 @@ export const StepperInput: React.FC<Props> = ({ value, onChange, label, step = 1
 
   return (
     <View style={styles.container}>
-      {label && <Text variant="bodyMedium" style={{ color: theme.colors.secondary }}>{label}</Text>}
-      <View style={[styles.controls, { backgroundColor: theme.colors.surfaceVariant }]}>
+      {label && <Text variant="bodySmall" style={{ color: theme.colors.secondary, marginBottom: 6 }}>{label}</Text>}
+      <View style={[styles.controls, { backgroundColor: theme.colors.surfaceVariant, borderColor: theme.colors.outline, borderWidth: 1 }]}>
         <TouchableOpacity onPress={() => handlePress('down')} style={styles.btn}>
           <MaterialIcons name="remove" size={20} color={theme.colors.onSurface} />
         </TouchableOpacity>
         <View style={styles.valueContainer}>
-            <Text variant="titleMedium" style={{ fontWeight: 'bold' }}>{value}</Text>
-            <Text variant="bodySmall" style={{ opacity: 0.6 }}>saat</Text>
+            <Text variant="titleMedium" style={{ fontWeight: 'bold', color: theme.colors.onSurface }}>
+                {value} <Text style={{fontSize: 12, fontWeight: 'normal', color: theme.colors.secondary}}>{suffix}</Text>
+            </Text>
         </View>
         <TouchableOpacity onPress={() => handlePress('up')} style={styles.btn}>
           <MaterialIcons name="add" size={20} color={theme.colors.onSurface} />
@@ -38,8 +40,8 @@ export const StepperInput: React.FC<Props> = ({ value, onChange, label, step = 1
   );
 };
 const styles = StyleSheet.create({
-  container: { alignItems: 'center', gap: 4 },
-  controls: { flexDirection: 'row', alignItems: 'center', borderRadius: 12, padding: 4 },
-  btn: { padding: 8, borderRadius: 8, backgroundColor: 'rgba(0,0,0,0.05)' },
-  valueContainer: { minWidth: 50, alignItems: 'center', paddingHorizontal: 8 }
+  container: { alignItems: 'flex-end' },
+  controls: { flexDirection: 'row', alignItems: 'center', borderRadius: 12, padding: 2 },
+  btn: { padding: 8, borderRadius: 10, backgroundColor: 'transparent' },
+  valueContainer: { minWidth: 40, alignItems: 'center', paddingHorizontal: 4 }
 });

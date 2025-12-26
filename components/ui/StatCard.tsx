@@ -15,9 +15,9 @@ export const StatCard: React.FC<Props> = ({ title, value, icon, color, trend }) 
   const theme = useTheme();
   const iconColor = color || theme.colors.primary;
   return (
-    <Surface style={[styles.card, { backgroundColor: theme.colors.surface }]} elevation={1}>
+    <Surface style={[styles.card, { backgroundColor: theme.colors.surface }]} elevation={2}>
       <View style={styles.iconContainer}>
-        <View style={[styles.iconCircle, { backgroundColor: iconColor + '20' }]}>
+        <View style={[styles.iconCircle, { backgroundColor: iconColor + '15' }]}>
             <MaterialIcons name={icon} size={22} color={iconColor} />
         </View>
         {trend && <Text variant="labelSmall" style={{ color: theme.colors.primary, fontWeight: 'bold' }}>{trend}</Text>}

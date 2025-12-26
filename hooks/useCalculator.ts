@@ -6,6 +6,7 @@ import 'react-native-get-random-values';
 
 export const useCalculator = () => {
   const defaultHourlyRate = useAppStore((state) => state.settings.defaultHourlyRate);
+
   const [hourlyRate, setHourlyRate] = useState<string>(defaultHourlyRate);
   const [normalHours, setNormalHours] = useState<string>('');
   const [deductions, setDeductions] = useState<string>('');
@@ -16,15 +17,17 @@ export const useCalculator = () => {
     }
   }, [defaultHourlyRate]);
 
+  // Varsayılanlar: Biri Mesai, Biri Günlük örnek
   const [overtimeItems, setOvertimeItems] = useState<OvertimeItem[]>([
-    { id: '1', title: 'Hafta İçi (%50)', hours: 0, percentage: 50, isOverride: false },
-    { id: '2', title: 'Hafta Sonu (%100)', hours: 0, percentage: 100, isOverride: false },
+    { id: '1', type: 'rate', title: 'Mesai (%50)', hours: 0, percentage: 50, isOverride: false },
+    { id: '2', type: 'fixed', title: 'Yol / Yemek', hours: 0, percentage: 0, manualRate: 0, isOverride: true },
   ]);
 
   const addCategory = () => {
     setOvertimeItems([
       ...overtimeItems,
-      { id: uuidv4(), title: 'Ek Mesai', hours: 0, percentage: 50, isOverride: false }
+      // Varsayılan olarak saatlik mesai ekle
+      { id: uuidv4(), type: 'rate', title: 'Yeni Mesai', hours: 0, percentage: 50, isOverride: false }
     ]);
   };
 
@@ -35,9 +38,18 @@ export const useCalculator = () => {
   const updateItem = (id: string, field: keyof OvertimeItem, value: any) => {
     setOvertimeItems(prev => prev.map(item => {
       if (item.id !== id) return item;
-      if (field === 'manualRate') return { ...item, manualRate: value, isOverride: true };
-      if (field === 'percentage') return { ...item, percentage: value, isOverride: false, manualRate: undefined };
-      if (field === 'isOverride' && value === false) return { ...item, isOverride: false, manualRate: undefined };
+
+      // Tip değişirse bazı alanları sıfırla
+      if (field === 'type') {
+        return {
+            ...item,
+            type: value,
+            percentage: value === 'rate' ? 50 : 0,
+            manualRate: value === 'fixed' ? 0 : undefined,
+            isOverride: value === 'fixed'
+        };
+      }
+
       return { ...item, [field]: value };
     }));
   };
@@ -46,16 +58,23 @@ export const useCalculator = () => {
     const rate = parseFloat(hourlyRate.toString().replace(',', '.')) || 0;
     const normHours = parseFloat(normalHours.toString().replace(',', '.')) || 0;
     const deduc = parseFloat(deductions.toString().replace(',', '.')) || 0;
+
     let totalOvertimePay = 0;
 
     overtimeItems.forEach(item => {
-      let effectiveHourlyPay = 0;
-      if (item.isOverride && item.manualRate !== undefined) {
-        effectiveHourlyPay = item.manualRate;
+      let itemTotal = 0;
+
+      if (item.type === 'fixed') {
+        // Sabit Tutar Modu: Adet * Birim Fiyat
+        const unitPrice = item.manualRate || 0;
+        itemTotal = item.hours * unitPrice;
       } else {
-        effectiveHourlyPay = rate * (1 + item.percentage / 100);
+        // Mesai Modu: Saat * Saatlik Ücret * Katsayı
+        const multiplier = (1 + item.percentage / 100);
+        itemTotal = item.hours * rate * multiplier;
       }
-      totalOvertimePay += (item.hours * effectiveHourlyPay);
+
+      totalOvertimePay += itemTotal;
     });
 
     const baseSalary = normHours * rate;
