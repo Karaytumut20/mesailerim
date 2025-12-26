@@ -13,12 +13,8 @@ interface Props {
 
 export const StepperInput: React.FC<Props> = ({ value, onChange, label, step = 1 }) => {
   const theme = useTheme();
-
   const handlePress = (direction: 'up' | 'down') => {
-    // Küçük bir titreşim ile fiziksel his ver
-    if (process.env.EXPO_OS !== 'web') {
-        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    }
+    if (process.env.EXPO_OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     const newValue = direction === 'up' ? value + step : value - step;
     if (newValue >= 0) onChange(newValue);
   };
@@ -30,12 +26,10 @@ export const StepperInput: React.FC<Props> = ({ value, onChange, label, step = 1
         <TouchableOpacity onPress={() => handlePress('down')} style={styles.btn}>
           <MaterialIcons name="remove" size={20} color={theme.colors.onSurface} />
         </TouchableOpacity>
-
         <View style={styles.valueContainer}>
             <Text variant="titleMedium" style={{ fontWeight: 'bold' }}>{value}</Text>
             <Text variant="bodySmall" style={{ opacity: 0.6 }}>saat</Text>
         </View>
-
         <TouchableOpacity onPress={() => handlePress('up')} style={styles.btn}>
           <MaterialIcons name="add" size={20} color={theme.colors.onSurface} />
         </TouchableOpacity>
@@ -43,7 +37,6 @@ export const StepperInput: React.FC<Props> = ({ value, onChange, label, step = 1
     </View>
   );
 };
-
 const styles = StyleSheet.create({
   container: { alignItems: 'center', gap: 4 },
   controls: { flexDirection: 'row', alignItems: 'center', borderRadius: 12, padding: 4 },

@@ -1,107 +1,60 @@
 import React, { useEffect } from 'react';
-import { ScrollView, View, Alert } from 'react-native';
+import { ScrollView, View, Alert, TouchableOpacity } from 'react-native';
 import { Text, Button, useTheme, Surface } from 'react-native-paper';
 import { useCalculator } from '@/hooks/useCalculator';
 import { OvertimeCard } from '@/components/OvertimeCard';
+import { StatCard } from '@/components/ui/StatCard';
 import { formatCurrency, parseNumber } from '@/utils/formatters';
 import { useAppStore } from '@/store/appStore';
 import Animated, { FadeInDown, SlideInUp } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 import { MaterialIcons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 
 export default function DashboardScreen() {
   const theme = useTheme();
-  const { addToHistory, settings } = useAppStore();
+  const router = useRouter();
+  const { addToHistory, history } = useAppStore();
+  const { hourlyRate, overtimeItems, addCategory, removeCategory, updateItem, results } = useCalculator();
 
-  const {
-    hourlyRate, setHourlyRate,
-    overtimeItems, addCategory, removeCategory, updateItem,
-    results
-  } = useCalculator();
-
-  // Ayarlardan varsayılan saatlik ücreti çek
-  useEffect(() => {
-    if (settings.defaultHourlyRate && (!hourlyRate || hourlyRate === '')) {
-        setHourlyRate(settings.defaultHourlyRate);
-    }
-  }, [settings.defaultHourlyRate]);
+  const currentMonthTotal = history.filter(h => new Date(h.date).getMonth() === new Date().getMonth()).reduce((acc, curr) => acc + curr.result.overtimeSalary, 0);
 
   const handleSave = () => {
-    if (results.overtimeSalary <= 0) {
-        Alert.alert("Uyarı", "Hesaplanmış bir mesai tutarı bulunamadı.");
-        return;
-    }
-
-    if (process.env.EXPO_OS !== 'web') {
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    }
-
-    addToHistory({
-      id: Date.now().toString(),
-      date: new Date().toISOString(),
-      hourlyRate: parseNumber(hourlyRate),
-      result: results,
-      overtimeItems: [...overtimeItems],
-      note: 'Hızlı Giriş'
-    });
-
-    Alert.alert("Başarılı", "Mesai kaydı başarıyla eklendi! 🎉");
+    if (results.overtimeSalary <= 0) { Alert.alert("Uyarı", "Hesaplanacak mesai yok."); return; }
+    if (process.env.EXPO_OS !== 'web') Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    addToHistory({ id: Date.now().toString(), date: new Date().toISOString(), hourlyRate: parseNumber(hourlyRate), result: results, overtimeItems: [...overtimeItems], note: 'Hızlı Giriş' });
+    Alert.alert("Başarılı", "Kaydedildi! 🎉");
   };
 
   return (
     <View style={{ flex: 1, backgroundColor: theme.colors.background }}>
-        {/* Header - Büyük Kazanç Göstergesi */}
-        <Surface style={{
-            backgroundColor: theme.colors.primary,
-            paddingTop: 60,
-            paddingBottom: 30,
-            paddingHorizontal: 20,
-            borderBottomLeftRadius: 30,
-            borderBottomRightRadius: 30,
-            elevation: 4
-        }}>
-            <Animated.View entering={SlideInUp.delay(100)}>
-                <Text style={{ color: 'rgba(255,255,255,0.8)', fontSize: 14, fontWeight: '600' }}>
-                    HESAPLANAN MESAİ
-                </Text>
-                <Text style={{ color: '#fff', fontSize: 40, fontWeight: 'bold', marginVertical: 4 }}>
-                    {formatCurrency(results.overtimeSalary)}
-                </Text>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: 'rgba(0,0,0,0.1)', alignSelf: 'flex-start', padding: 4, paddingHorizontal: 8, borderRadius: 8 }}>
-                    <MaterialIcons name="attach-money" size={16} color="rgba(255,255,255,0.9)" />
-                    <Text style={{ color: 'rgba(255,255,255,0.9)', fontSize: 12, fontWeight: '600' }}>
-                        Saatlik: {formatCurrency(parseNumber(hourlyRate) || 0)}
-                    </Text>
-                </View>
-            </Animated.View>
-        </Surface>
-
-        <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 100 }}>
+        <Surface style={{ backgroundColor: theme.colors.surface, paddingTop: 50, paddingBottom: 20, paddingHorizontal: 20, borderBottomLeftRadius: 24, borderBottomRightRadius: 24, elevation: 2 }}>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-                <Text variant="titleMedium" style={{ fontWeight: 'bold', color: theme.colors.secondary }}>Mesai Kalemleri</Text>
-                <Button mode="text" onPress={addCategory} icon="plus" textColor={theme.colors.primary}>Ekle</Button>
+                <View><Text variant="titleMedium" style={{ color: theme.colors.secondary }}>Hoş Geldiniz 👋</Text><Text variant="headlineSmall" style={{ fontWeight: 'bold' }}>Mesai Takibi</Text></View>
+                <TouchableOpacity onPress={() => router.push('/settings')} style={{ backgroundColor: theme.colors.surfaceVariant, padding: 8, borderRadius: 12 }}>
+                    <MaterialIcons name="settings" size={24} color={theme.colors.secondary} />
+                </TouchableOpacity>
             </View>
-
+            <View style={{ flexDirection: 'row', gap: 12 }}>
+                <StatCard title="Bu Ay Toplam" value={formatCurrency(currentMonthTotal)} icon="bar-chart" color={theme.colors.primary} />
+                <StatCard title="Anlık Hesap" value={formatCurrency(results.overtimeSalary)} icon="calculate" color="#F59E0B" />
+            </View>
+        </Surface>
+        <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 100 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginBottom: 20, opacity: 0.7 }}>
+                <MaterialIcons name="info-outline" size={16} color={theme.colors.secondary} />
+                <Text style={{ marginLeft: 6, color: theme.colors.secondary }}>Aktif Saatlik Ücret: <Text style={{ fontWeight: 'bold' }}>{formatCurrency(parseNumber(hourlyRate) || 0)}</Text></Text>
+            </View>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                <Text variant="titleMedium" style={{ fontWeight: 'bold' }}>Mesai Girişi</Text>
+                <Button mode="contained-tonal" onPress={addCategory} icon="plus" compact>Yeni Kalem</Button>
+            </View>
             {overtimeItems.map((item, index) => (
                 <Animated.View key={item.id} entering={FadeInDown.delay(index * 100).springify()}>
-                    <OvertimeCard
-                        item={item}
-                        baseRate={parseNumber(hourlyRate)}
-                        onUpdate={updateItem}
-                        onDelete={removeCategory}
-                    />
+                    <OvertimeCard item={item} baseRate={parseNumber(hourlyRate)} onUpdate={updateItem} onDelete={removeCategory} />
                 </Animated.View>
             ))}
-
-            <Button
-                mode="contained"
-                onPress={handleSave}
-                style={{ marginTop: 20, borderRadius: 12, paddingVertical: 6 }}
-                icon="check-circle-outline"
-                buttonColor={theme.colors.primary}
-            >
-                KAYDET VE BİTİR
-            </Button>
+            <Button mode="contained" onPress={handleSave} style={{ marginTop: 24, borderRadius: 12, paddingVertical: 8 }} icon="check">HESAPLA VE KAYDET</Button>
         </ScrollView>
     </View>
   );
